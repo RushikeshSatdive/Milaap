@@ -3,13 +3,31 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API for Milaap, a community-first platform for local connection and shared activities.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: profile
+    description: Member profiles and dashboard
+  - name: discovery
+    description: People and community discovery
+  - name: connections
+    description: Consent-based member connections
+  - name: activities
+    description: Small, in-person community activities
+  - name: skills
+    description: Community skill exchange
+  - name: projects
+    description: Local community projects
+  - name: messaging
+    description: Permitted member conversations
+  - name: notifications
+    description: In-app notifications
+  - name: safety
+    description: Blocking and reporting
 paths:
   /healthz:
     get:
@@ -24,7 +42,557 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me:
+    get:
+      operationId: getMyProfile
+      tags: [profile]
+      summary: Get the signed-in member profile
+      responses:
+        "200":
+          description: Current member profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: updateMyProfile
+      tags: [profile]
+      summary: Update profile and onboarding preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [profile]
+      summary: Get dashboard highlights for the signed-in member
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /people:
+    get:
+      operationId: listPeople
+      tags: [discovery]
+      summary: Search for members with transparent match explanations
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: communityId
+          in: query
+          schema: { type: string }
+        - name: skill
+          in: query
+          schema: { type: string }
+        - name: interest
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: People ranked by compatibility
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PersonMatch" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /connections:
+    get:
+      operationId: listConnections
+      tags: [connections]
+      summary: List incoming, outgoing, and accepted connections
+      responses:
+        "200":
+          description: Connections for the current member
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Connection" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createConnection
+      tags: [connections]
+      summary: Send a connection request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConnectionInput" }
+      responses:
+        "201":
+          description: Connection request created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /connections/{id}:
+    patch:
+      operationId: updateConnection
+      tags: [connections]
+      summary: Accept, decline, or cancel a connection request
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConnectionUpdate" }
+      responses:
+        "200":
+          description: Updated connection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteConnection
+      tags: [connections]
+      summary: Remove an accepted connection or cancel a request
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Connection removed }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [activities]
+      summary: Browse community activities
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: communityId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Activities visible to the current member
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Activity" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Create a community activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityInput" }
+      responses:
+        "201":
+          description: Activity created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Activity" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /activities/{id}:
+    get:
+      operationId: getActivity
+      tags: [activities]
+      summary: Get activity details
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Activity details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Activity" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /activities/{id}/join:
+    post:
+      operationId: joinActivity
+      tags: [activities]
+      summary: Request or confirm participation in an activity
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityJoinInput" }
+      responses:
+        "200":
+          description: Participation status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Activity" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /skills:
+    get:
+      operationId: listSkills
+      tags: [skills]
+      summary: Browse skill offers and learning requests
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string, enum: [offer, request] }
+      responses:
+        "200":
+          description: Community skill listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SkillListing" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createSkill
+      tags: [skills]
+      summary: Create a skill offer or learning request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SkillListingInput" }
+      responses:
+        "201":
+          description: Skill listing created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillListing" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /skills/{id}:
+    patch:
+      operationId: updateSkill
+      tags: [skills]
+      summary: Update an owned skill listing
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SkillListingUpdate" }
+      responses:
+        "200":
+          description: Updated skill listing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillListing" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSkill
+      tags: [skills]
+      summary: Delete an owned skill listing
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Skill listing deleted }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: Browse community problem-solving projects
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Community projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CommunityProject" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Propose a community project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectInput" }
+      responses:
+        "201":
+          description: Community project created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunityProject" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /projects/{id}/join:
+    post:
+      operationId: joinProject
+      tags: [projects]
+      summary: Volunteer for a community project
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Project with updated membership
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CommunityProject" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /communities:
+    get:
+      operationId: listCommunities
+      tags: [discovery]
+      summary: List communities available to the current member
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Communities
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Community" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /communities/{id}/join:
+    post:
+      operationId: joinCommunity
+      tags: [discovery]
+      summary: Request to join a community
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Updated community membership
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Community" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List in-app notifications
+      responses:
+        "200":
+          description: Notifications for the current member
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Notification" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /notifications/read-all:
+    patch:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Number of notifications marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CountResult" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [messaging]
+      summary: List conversations the current member can access
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [messaging]
+      summary: Read messages in a permitted conversation
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Conversation messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: sendMessage
+      tags: [messaging]
+      summary: Send a message in a permitted conversation
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /reports:
+    post:
+      operationId: createReport
+      tags: [safety]
+      summary: Report a member or community item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportInput" }
+      responses:
+        "201":
+          description: Report submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReportResult" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /users/{id}/block:
+    post:
+      operationId: blockUser
+      tags: [safety]
+      summary: Block a member
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Member blocked }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Unauthorized:
+      description: Sign in is required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: The request is invalid
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: The request conflicts with existing data
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: The requested record was not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +601,276 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+    Profile:
+      type: object
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        email: { type: string }
+        bio: { type: ["string", "null"] }
+        ageRange: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        locality: { type: ["string", "null"] }
+        language: { type: string }
+        interests: { type: array, items: { type: string } }
+        skillsOffered: { type: array, items: { type: string } }
+        skillsWanted: { type: array, items: { type: string } }
+        availability: { type: array, items: { type: string } }
+        preferredActivities: { type: array, items: { type: string } }
+        profileVisibility: { type: string, enum: [community, members, private] }
+        groupActivities: { type: boolean }
+        onboardingComplete: { type: boolean }
+        communities:
+          type: array
+          items: { $ref: "#/components/schemas/Community" }
+      required: [id, displayName, email, language, interests, skillsOffered, skillsWanted, availability, preferredActivities, profileVisibility, groupActivities, onboardingComplete, communities]
+    ProfileUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        bio: { type: ["string", "null"], maxLength: 500 }
+        ageRange: { type: ["string", "null"] }
+        city: { type: ["string", "null"], maxLength: 100 }
+        locality: { type: ["string", "null"], maxLength: 100 }
+        language: { type: string, maxLength: 40 }
+        interests: { type: array, items: { type: string }, maxItems: 20 }
+        skillsOffered: { type: array, items: { type: string }, maxItems: 20 }
+        skillsWanted: { type: array, items: { type: string }, maxItems: 20 }
+        availability: { type: array, items: { type: string }, maxItems: 14 }
+        preferredActivities: { type: array, items: { type: string }, maxItems: 20 }
+        profileVisibility: { type: string, enum: [community, members, private] }
+        groupActivities: { type: boolean }
+        onboardingComplete: { type: boolean }
+        communityId: { type: ["string", "null"] }
+    PersonMatch:
+      type: object
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        bio: { type: ["string", "null"] }
+        ageRange: { type: ["string", "null"] }
+        city: { type: ["string", "null"] }
+        locality: { type: ["string", "null"] }
+        interests: { type: array, items: { type: string } }
+        skillsOffered: { type: array, items: { type: string } }
+        skillsWanted: { type: array, items: { type: string } }
+        availability: { type: array, items: { type: string } }
+        preferredActivities: { type: array, items: { type: string } }
+        communityName: { type: ["string", "null"] }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        reasons: { type: array, items: { type: string } }
+        connectionStatus: { type: ["string", "null"] }
+      required: [id, displayName, interests, skillsOffered, skillsWanted, availability, preferredActivities, score, reasons]
+    Dashboard:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/Profile" }
+        suggestedPeople:
+          type: array
+          items: { $ref: "#/components/schemas/PersonMatch" }
+        upcomingActivities:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        activitiesCount: { type: integer }
+        pendingRequestsCount: { type: integer }
+        unreadNotificationsCount: { type: integer }
+        recentNotifications:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+    Community:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        type: { type: string }
+        city: { type: ["string", "null"] }
+        memberCount: { type: integer }
+        membershipStatus: { type: ["string", "null"] }
+        guidelines: { type: string }
+      required: [id, name, description, type, memberCount, guidelines]
+    Connection:
+      type: object
+      properties:
+        id: { type: string }
+        otherUserId: { type: string }
+        otherDisplayName: { type: string }
+        otherBio: { type: ["string", "null"] }
+        status: { type: string, enum: [pending, accepted, declined, cancelled] }
+        direction: { type: string, enum: [incoming, outgoing, connected] }
+        sharedInterests: { type: array, items: { type: string } }
+        complementarySkills: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }
+      required: [id, otherUserId, otherDisplayName, status, direction, sharedInterests, complementarySkills, createdAt]
+    ConnectionInput:
+      type: object
+      properties:
+        recipientId: { type: string }
+        message: { type: string, maxLength: 300 }
+      required: [recipientId]
+    ConnectionUpdate:
+      type: object
+      properties:
+        status: { type: string, enum: [accepted, declined, cancelled] }
+      required: [status]
+    Activity:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        durationMinutes: { type: integer }
+        format: { type: string, enum: [one-to-one, group] }
+        accessibility: { type: ["string", "null"] }
+        materials: { type: ["string", "null"] }
+        meetingPoint: { type: ["string", "null"] }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        capacity: { type: integer }
+        participantCount: { type: integer }
+        pendingRequestCount: { type: integer }
+        hostId: { type: string }
+        hostName: { type: string }
+        communityId: { type: ["string", "null"] }
+        communityName: { type: ["string", "null"] }
+        status: { type: string, enum: [open, requested, confirmed, completed, cancelled] }
+        participationStatus: { type: ["string", "null"] }
+      required: [id, title, description, category, durationMinutes, format, capacity, participantCount, pendingRequestCount, hostId, hostName, status]
+    ActivityInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, minLength: 5, maxLength: 1000 }
+        category: { type: string, maxLength: 50 }
+        durationMinutes: { type: integer, minimum: 10, maximum: 240, default: 20 }
+        format: { type: string, enum: [one-to-one, group] }
+        accessibility: { type: ["string", "null"], maxLength: 300 }
+        materials: { type: ["string", "null"], maxLength: 300 }
+        meetingPoint: { type: ["string", "null"], maxLength: 200 }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        capacity: { type: integer, minimum: 2, maximum: 50 }
+        communityId: { type: ["string", "null"] }
+      required: [title, description, category, durationMinutes, format, capacity]
+    ActivityJoinInput:
+      type: object
+      properties:
+        action: { type: string, enum: [request, confirm, cancel], default: request }
+    SkillListing:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        displayName: { type: string }
+        skill: { type: string }
+        type: { type: string, enum: [offer, request] }
+        description: { type: string }
+        experienceLevel: { type: string }
+        format: { type: string }
+        availability: { type: string }
+        communityName: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, displayName, skill, type, description, experienceLevel, format, availability, createdAt]
+    SkillListingInput:
+      type: object
+      properties:
+        skill: { type: string, minLength: 2, maxLength: 100 }
+        type: { type: string, enum: [offer, request] }
+        description: { type: string, maxLength: 500 }
+        experienceLevel: { type: string, maxLength: 40 }
+        format: { type: string, maxLength: 40 }
+        availability: { type: string, maxLength: 120 }
+      required: [skill, type, description, experienceLevel, format, availability]
+    SkillListingUpdate:
+      type: object
+      properties:
+        skill: { type: string, minLength: 2, maxLength: 100 }
+        type: { type: string, enum: [offer, request] }
+        description: { type: string, maxLength: 500 }
+        experienceLevel: { type: string, maxLength: 40 }
+        format: { type: string, maxLength: 40 }
+        availability: { type: string, maxLength: 120 }
+    CommunityProject:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        status: { type: string, enum: [proposed, planning, in-progress, completed] }
+        communityId: { type: ["string", "null"] }
+        communityName: { type: ["string", "null"] }
+        ownerId: { type: string }
+        ownerName: { type: string }
+        volunteerCount: { type: integer }
+        targetDate: { type: ["string", "null"], format: date }
+        joined: { type: boolean }
+      required: [id, title, description, category, status, ownerId, ownerName, volunteerCount, joined]
+    ProjectInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, minLength: 5, maxLength: 1000 }
+        category: { type: string, maxLength: 50 }
+        communityId: { type: ["string", "null"] }
+        targetDate: { type: ["string", "null"], format: date }
+      required: [title, description, category]
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        title: { type: string }
+        description: { type: string }
+        href: { type: ["string", "null"] }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, kind, title, description, isRead, createdAt]
+    CountResult:
+      type: object
+      properties:
+        count: { type: integer }
+      required: [count]
+    Conversation:
+      type: object
+      properties:
+        id: { type: string }
+        otherUserId: { type: string }
+        otherDisplayName: { type: string }
+        lastMessage: { type: ["string", "null"] }
+        lastMessageAt: { type: ["string", "null"], format: date-time }
+        unreadCount: { type: integer }
+      required: [id, otherUserId, otherDisplayName, unreadCount]
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        conversationId: { type: string }
+        senderId: { type: string }
+        senderName: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, conversationId, senderId, senderName, body, createdAt]
+    MessageInput:
+      type: object
+      properties:
+        body: { type: string, minLength: 1, maxLength: 2000 }
+      required: [body]
+    ReportInput:
+      type: object
+      properties:
+        targetType: { type: string, enum: [user, activity, project, message, community] }
+        targetId: { type: string }
+        reason: { type: string, minLength: 3, maxLength: 1000 }
+      required: [targetType, targetId, reason]
+    ReportResult:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+      required: [id, status]
 

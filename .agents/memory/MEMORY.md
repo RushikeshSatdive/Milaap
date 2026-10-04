@@ -1,0 +1,1 @@
+- [Generated OpenAPI client typings](openapi-client-types.md) — Orval's Fetch output needs DOM.Iterable for TypeScript's `Headers.entries`.
